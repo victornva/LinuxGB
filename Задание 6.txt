@@ -1,0 +1,312 @@
+Урок 6. Введение в скрипты bash. Планировщики задач crontab и at
+
+---------------------------------------------------------------------------------------------------------------
+1.  Написать скрипт, который удаляет из текстового файла пустые строки и заменяет маленькие символы на большие. 
+	Воспользуйтесь tr или SED.
+
+# cat user-dirs.dirs | tr -d ' ' |  tr -s 'a-z' 'A-Z'
+или
+# cat user-dirs.dirs | tr -d ' ' |  tr -s '[:lower:]' '[:upper:]'
+или
+# sed -e 's/ //g; s/\(.*\)/\U\1/' user-dirs.dirs
+
+Проверяем:
+
+# cat user-dirs.dirs
+
+# This file is written by xdg-user-dirs-update
+# If you want to change or add directories, just edit the line you're
+# interested in. All local changes will be retained on the next run.
+# Format is XDG_xxx_DIR="$HOME/yyy", where yyy is a shell-escaped
+# homedir-relative path, or XDG_xxx_DIR="/yyy", where /yyy is an
+# absolute path. No other format is supported.
+#
+XDG_DESKTOP_DIR="$HOME/Рабочий стол"
+XDG_DOWNLOAD_DIR="$HOME/Загрузки"
+XDG_TEMPLATES_DIR="$HOME/Шаблоны"
+XDG_PUBLICSHARE_DIR="$HOME/Общедоступные"
+XDG_DOCUMENTS_DIR="$HOME/Документы"
+XDG_MUSIC_DIR="$HOME/Музыка"
+XDG_PICTURES_DIR="$HOME/Изображения"
+XDG_VIDEOS_DIR="$HOME/Видео"
+
+# cat user-dirs.dirs | tr -d ' ' |  tr -s 'a-z' 'A-Z'
+
+#THISFILEISWRITENBYXDG-USER-DIRS-UPDATE
+#IFYOUWANTOCHANGEORADIRECTORIES,JUSTEDITHELINEYOU'RE
+#INTERESTEDIN.ALOCALCHANGESWILBERETAINEDONTHENEXTRUN.
+#FORMATISXDG_X_DIR="$HOME/Y",WHEREYISASHEL-ESCAPED
+#HOMEDIR-RELATIVEPATH,ORXDG_X_DIR="/Y",WHERE/YISAN
+#ABSOLUTEPATH.NOTHERFORMATISUPORTED.
+#
+XDG_DESKTOP_DIR="$HOME/Рабочийстол"
+XDG_DOWNLOAD_DIR="$HOME/Загрузки"
+XDG_TEMPLATES_DIR="$HOME/Шаблоны"
+XDG_PUBLICSHARE_DIR="$HOME/Общедоступные"
+XDG_DOCUMENTS_DIR="$HOME/Документы"
+XDG_MUSIC_DIR="$HOME/Музыка"
+XDG_PICTURES_DIR="$HOME/Изображения"
+XDG_VIDEOS_DIR="$HOME/Видео"
+root@GB-Ubuntu:/home/victor#
+
+# sed -e 's/ //g; s/\(.*\)/\U\1/' user-dirs.dirs
+
+#THISFILEISWRITTENBYXDG-USER-DIRS-UPDATE
+#IFYOUWANTTOCHANGEORADDDIRECTORIES,JUSTEDITTHELINEYOU'RE
+#INTERESTEDIN.ALLLOCALCHANGESWILLBERETAINEDONTHENEXTRUN.
+#FORMATISXDG_XXX_DIR="$HOME/YYY",WHEREYYYISASHELL-ESCAPED
+#HOMEDIR-RELATIVEPATH,ORXDG_XXX_DIR="/YYY",WHERE/YYYISAN
+#ABSOLUTEPATH.NOOTHERFORMATISSUPPORTED.
+#
+XDG_DESKTOP_DIR="$HOME/РАБОЧИЙСТОЛ"
+XDG_DOWNLOAD_DIR="$HOME/ЗАГРУЗКИ"
+XDG_TEMPLATES_DIR="$HOME/ШАБЛОНЫ"
+XDG_PUBLICSHARE_DIR="$HOME/ОБЩЕДОСТУПНЫЕ"
+XDG_DOCUMENTS_DIR="$HOME/ДОКУМЕНТЫ"
+XDG_MUSIC_DIR="$HOME/МУЗЫКА"
+XDG_PICTURES_DIR="$HOME/ИЗОБРАЖЕНИЯ"
+XDG_VIDEOS_DIR="$HOME/ВИДЕО"
+
+
+-------------------------------------------------------------------------------------------------------------------------
+2.  Создать однострочный скрипт, который создаст директории для нескольких годов (2010–2017), 
+	в них — поддиректории для месяцев (от 01 до 12), и в каждый из них запишет несколько файлов с произвольными записями. 
+	Например, 001.txt, содержащий текст «Файл 001», 002.txt с текстом «Файл 002» и т. д.
+
+# mkdir -p {2010..2017}/{1..12}; for y in $(ls); do cd $y; for m in $(ls); do cd $m; n=0; while (($n < 3)); do ((++n)); echo Файл-$n > $n.txt; done; cd ..; done; cd ..; done
+
+теперь посмотрим что получилось:
+# ls
+2010  2011  2012  2013  2014  2015  2016  2017
+# cd 2010
+# ls
+1  10  11  12  2  3  4  5  6  7  8  9
+# cd 5
+# ls
+1.txt  2.txt  3.txt
+# cat 1.txt 2.txt 3.txt
+Файл-1
+Файл-2
+Файл-3
+
+всё нормально, для наглядности можно так посмотреть:
+# tree
+.
+├── 2010
+│   ├── 1
+│   │   ├── 1.txt
+│   │   ├── 2.txt
+│   │   └── 3.txt
+│   ├── 10
+│   │   ├── 1.txt
+│   │   ├── 2.txt
+│   │   └── 3.txt
+│   ├── 11
+│   │   ├── 1.txt
+│   │   ├── 2.txt
+│   │   └── 3.txt
+│   ├── 12
+│   │   ├── 1.txt
+│   │   ├── 2.txt
+│   │   └── 3.txt
+│   ├── 2
+│   │   ├── 1.txt
+│   │   ├── 2.txt
+│   │   └── 3.txt
+│   ├── 3
+│   │   ├── 1.txt
+│   │   ├── 2.txt
+│   │   └── 3.txt
+│   ├── 4
+│   │   ├── 1.txt
+│   │   ├── 2.txt
+│   │   └── 3.txt
+│   ├── 5
+│   │   ├── 1.txt
+│   │   ├── 2.txt
+│   │   └── 3.txt
+│   ├── 6
+│   │   ├── 1.txt
+│   │   ├── 2.txt
+│   │   └── 3.txt
+│   ├── 7
+│   │   ├── 1.txt
+│   │   ├── 2.txt
+│   │   └── 3.txt
+│   ├── 8
+│   │   ├── 1.txt
+│   │   ├── 2.txt
+│   │   └── 3.txt
+│   └── 9
+│       ├── 1.txt
+│       ├── 2.txt
+│       └── 3.txt
+├── 2011
+│   ├── 1
+│   │   ├── 1.txt
+│   │   ├── 2.txt
+│   │   └── 3.txt
+│   ├── 10
+│   │   ├── 1.txt
+│   │   ├── 2.txt
+│   │   └── 3.txt
+│   ├── 11
+│   │   ├── 1.txt
+│   │   ├── 2.txt
+│   │   └── 3.txt
+│   ├── 12
+│   │   ├── 1.txt
+│   │   ├── 2.txt
+│   │   └── 3.txt
+│   ├── 2
+│   │   ├── 1.txt
+│   │   ├── 2.txt
+│   │   └── 3.txt
+
+и т.д.
+
+
+--------------------------------------------------------------------------------------------------------------
+3.  Использовать команду AWK на вывод длинного списка каталога, чтобы отобразить только права доступа к файлам. 
+	Затем отправить в конвейере этот вывод на sort и uniq, чтобы отфильтровать все повторяющиеся строки.
+
+# ls -l
+-rw-rw-r-- 1 victor victor 1851 авг 24 12:36  example.dump
+-rw-rw-r-- 1 victor victor   13 авг 18 16:51  file_name
+-rw-r--r-- 1 root   root   1625 авг 25 12:52  new.file
+-rw-rw-r-- 1 victor victor 2165 авг 18 15:41  task1
+drwxrwxr-t 2 victor victor 4096 авг 10 22:14  thinclient_drives
+drwxr-xr-x 4 root   root   4096 авг 26 10:46  YEAR
+drwxr-xr-x 2 victor victor 4096 авг 10 17:58  Видео
+drwxr-xr-x 2 victor victor 4096 авг 10 17:58  Документы
+drwxr-xr-x 2 victor victor 4096 авг 10 17:58  Загрузки
+drwxr-xr-x 2 victor victor 4096 авг 10 17:58  Изображения
+drwxr-xr-x 2 victor victor 4096 авг 10 17:58  Музыка
+drwxr-xr-x 2 victor victor 4096 авг 10 17:58  Общедоступные
+drwxr-xr-x 2 victor victor 4096 авг 10 17:58 'Рабочий стол'
+drwxr-xr-x 2 victor victor 4096 авг 10 17:58  Шаблоны
+
+# ls -l |awk '{ print $1 }'
+-rw-rw-r--
+-rw-rw-r--
+-rw-r--r--
+-rw-rw-r--
+drwxrwxr-t
+drwxr-xr-x
+drwxr-xr-x
+drwxr-xr-x
+drwxr-xr-x
+drwxr-xr-x
+drwxr-xr-x
+drwxr-xr-x
+drwxr-xr-x
+drwxr-xr-x
+
+# ls -l |awk '{ print $1 }' | sort
+drwxrwxr-t
+drwxr-xr-x
+drwxr-xr-x
+drwxr-xr-x
+drwxr-xr-x
+drwxr-xr-x
+drwxr-xr-x
+drwxr-xr-x
+drwxr-xr-x
+drwxr-xr-x
+-rw-r--r--
+-rw-rw-r--
+-rw-rw-r--
+-rw-rw-r--
+
+# ls -l |awk '{ print $1 }' | sort | uniq
+drwxrwxr-t
+drwxr-xr-x
+-rw-r--r--
+-rw-rw-r--
+
+
+-------------------------------------------------------------------------------------------
+4. Используя grep, проанализировать файл /var/log/syslog, отобрав события на своё усмотрение.
+
+Посмотрим когда пользователь victor заходил в систему:
+
+# cat syslog | grep victor
+Aug 26 09:49:24 GB-Ubuntu systemd[1]: Started Session 317 of user victor.
+
+# cat syslog.1 | grep victor
+Aug 25 09:32:14 GB-Ubuntu systemd[1]: Started Session 121 of user victor.
+Aug 25 12:24:25 GB-Ubuntu systemd[1]: Started Session 145 of user victor.
+
+
+-------------------------------------------------------------------------------------------
+5. Создать разовое задание на перезагрузку операционной системы, используя at.
+
+# apt install at -y
+# systemctl enable atd
+# systemctl status atd
+● atd.service - Deferred execution scheduler
+     Loaded: loaded (/lib/systemd/system/atd.service; enabled; vendor preset: enabled)
+     Active: active (running) since Wed 2020-08-26 11:14:19 MSK; 28s ago
+       Docs: man:atd(8)
+   Main PID: 25480 (atd)
+      Tasks: 1 (limit: 9227)
+     Memory: 496.0K
+     CGroup: /system.slice/atd.service
+             └─25480 /usr/sbin/atd -f
+
+# echo reboot | at 11:30
+warning: commands will be executed using /bin/sh
+job 2 at Wed Aug 26 11:30:00 2020
+
+# atq
+1       Wed Aug 26 11:30:00 2020 a root
+
+
+-------------------------------------------------------------------------------------------
+6. Написать скрипт, делающий архивную копию каталога etc, и прописать задание в crontab.
+
+Т.к. данных много будем делать сжатый архив с помощью утилиты tar.
+Создадим файл backupscript.sh и добавим туда строки:  
+
+#!/bin/bash
+tar -czf /home/backup/etc-`date "+%d-%m-%Y"`.tar.gz /etc
+
+# vi backupscript.sh
+# cat backupscript.sh
+#!/bin/bash
+tar -czf /home/backup/etc-`date "+%d-%m-%Y"`.tar.gz /etc
+# ls -l
+-rw-r--r-- 1 root root 69 авг 26 12:22 backupscript.sh
+
+сделаем файл исполняемым:
+# chmod ug+x backupscript.sh
+# ls -l
+-rwxr-xr-- 1 root root 69 авг 26 12:22 backupscript.sh
+
+запускаем вручную для проверки:
+# ./backupscript.sh
+tar: Удаляется начальный `/' из имен объектов
+# ls -l
+-rwxr-xr-- 1 root root      69 авг 26 12:22 backupscript.sh
+-rw-r--r-- 1 root root 1318305 авг 26 12:24 etc-26-08-2020.tar.gz
+
+всё нормально, в архиве всё что нужно
+теперь запустим это через crontab ежедневно в 12:40:
+
+# crontab -e
+no crontab for root - using an empty one
+
+# crontab -l
+40 12 * * * /home/backup/backupscript.sh
+
+# date
+Ср 26 авг 2020 12:36:58 MSK
+root@GB-Ubuntu:/home/backup# ls -l
+-rwxr-xr-- 1 root root 69 авг 26 12:22 backupscript.sh
+root@GB-Ubuntu:/home/backup# date
+Ср 26 авг 2020 12:40:27 MSK
+root@GB-Ubuntu:/home/backup# ls -l
+-rwxr-xr-- 1 root root      69 авг 26 12:22 backupscript.sh
+-rw-r--r-- 1 root root 1318545 авг 26 12:40 etc-26-08-2020.tar.gz
+
+всё получилось:)
