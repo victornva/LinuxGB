@@ -1,0 +1,248 @@
+-------------------------------------------------------------------------------------------------------------------------
+	Урок 7. Управление пакетами и репозиториями.Основы сетевой безопасности
+-------------------------------------------------------------------------------------------------------------------------
+
+1. Подключить репозиторий с nginx любым удобным способом, установить nginx и потом удалить nginx, используя утилиту dpkg.
+
+$ sudo apt-add-repository ppa:nginx/stable
+$ sudo apt update
+
+$ sudo apt install nginx
+
+$ systemctl status nginx
+● nginx.service - A high performance web server and a reverse proxy server
+     Loaded: loaded (/lib/systemd/system/nginx.service; enabled; vendor preset: enabled)
+     Active: active (running) since Mon 2020-08-31 16:06:54 MSK; 5min ago
+       Docs: man:nginx(8)
+   Main PID: 54062 (nginx)
+
+$ sudo ufw allow nginx/tcp
+
+$ curl http://192.168.51.120/
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+
+$ systemctl stop nginx
+$ sudo apt remove nginx
+$ sudo apt autoremove
+
+$ curl http://192.168.51.120/
+curl: (7) Failed to connect to 192.168.51.120 port 80: В соединении отказано
+
+-------------------------------------------------------------------------------------------------------------------------
+
+2. Установить пакет на свой выбор, используя snap.
+
+$ sudo snap search iperf
+
+$ snap find postman
+Название  Версия  Издатель      Примечание  Описание
+postman   7.31.1  postman-inc✓  -           API Development Environment
+
+$ sudo snap install postman
+postman 7.31.1 от Postman, Inc. (postman-inc✓) установлен
+
+$ snap list
+Название           Версия              Правка  Канал            Издатель      Примечание
+core               16-2.45.3.1         9804    latest/stable    canonical✓    core
+core18             20200724            1885    latest/stable    canonical✓    base
+gnome-3-34-1804    0+git.3009fc7       36      latest/stable/…  canonical✓    -
+gtk-common-themes  0.1-36-gc75f853     1506    latest/stable/…  canonical✓    -
+lcavassa-iperf     3.1.3               1       latest/stable    lcavassa      -
+postman            7.31.1              123     latest/stable    postman-inc✓  -
+snap-store         3.36.0-80-g208fd61  467     latest/stable/…  canonical✓    -
+snapd              2.45.3.1            8790    latest/stable    canonical✓    snapd
+
+
+-------------------------------------------------------------------------------------------------------------------------
+3. Настроить iptables: разрешить подключения только на 22-й и 80-й порты.
+
+В Ubuntu 20 по умолчанию установлена оснастка управления файрволом ufw - я его пока трогать не хочу
+На Centos 8 по умолчанию firewalld - отключим его и будем настраивать iptables напрямую:
+
+# systemctl status firewalld
+● firewalld.service - firewalld - dynamic firewall daemon
+   Loaded: loaded (/usr/lib/systemd/system/firewalld.service; enabled; vendor preset: enabled)
+   Active: active (running) since Mon 2020-07-13 16:49:15 MSK; 1 months 18 days ago
+     Docs: man:firewalld(1)
+ Main PID: 964 (firewalld)
+    Tasks: 2 (limit: 11963)
+   Memory: 37.5M
+   CGroup: /system.slice/firewalld.service
+           └─964 /usr/libexec/platform-python -s /usr/sbin/firewalld --nofork --nopid
+
+# systemctl stop firewalld
+# systemctl disable firewalld
+
+Установим iptables:
+
+# yum -y install iptables-services
+
+добавим в автозагрузку
+# systemctl enable iptables.service
+Created symlink /etc/systemd/system/basic.target.wants/iptables.service → /usr/lib/systemd/system/iptables.service.
+
+запустим
+# systemctl start iptables.service
+# systemctl status iptables.service
+● iptables.service - IPv4 firewall with iptables
+   Loaded: loaded (/usr/lib/systemd/system/iptables.service; enabled; vendor preset: disabled)
+   Active: active (exited) since Mon 2020-08-31 17:44:30 MSK; 13s ago
+  Process: 53677 ExecStart=/usr/libexec/iptables/iptables.init start (code=exited, status=0/SUCCESS)
+ Main PID: 53677 (code=exited, status=0/SUCCESS)
+
+# ifconfig
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.51.108  netmask 255.255.255.0  broadcast 192.168.51.255
+        inet6 fe80::8808:ae3f:b705:cb1b  prefixlen 64  scopeid 0x20<link>
+        ether 00:15:5d:33:37:14  txqueuelen 1000  (Ethernet)
+        RX packets 7192876  bytes 1292354570 (1.2 GiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 195021  bytes 14581668 (13.9 MiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+
+# cd /etc/sysconfig/
+# ls
+anaconda  cpupower  ebtables-config  grub       ip6tables-config  iptables-config  kdump   man-db   network          nftables.conf  rsyslog    selinux
+console   crond     firewalld        ip6tables  iptables          irqbalance       kernel  modules  network-scripts  rhn            run-parts  sshd
+# cat iptables
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+-A INPUT -p icmp -j ACCEPT
+-A INPUT -i lo -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT
+-A INPUT -j REJECT --reject-with icmp-host-prohibited
+-A FORWARD -j REJECT --reject-with icmp-host-prohibited
+COMMIT
+
+в принципе можно просто добавить строчку для 80го порта, 22й уже есть:
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT
+
+но мы полностью всё поменяем на старый и проверенный временем вариант (ещё не плохо бы добавить 53й порт для DNS, и ещё некоторые...):
+
+# vi iptables
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT DROP [0:0]
+#
+-A INPUT -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK SYN -j ACCEPT
+-A INPUT -p tcp -m state --state RELATED,ESTABLISHED -j ACCEPT
+-A INPUT -p tcp -j DROP
+#-------------------------------------------------------------------------------
+-A INPUT -p ALL -s 127.0.0.1 -i lo -j ACCEPT
+-A INPUT -p ALL -s 192.168.51.108 -i lo -j ACCEPT
+#---------------------------------------------------------------
+# VLANs
+#-A INPUT -p ALL -s 192.168.51.0/24 -i eth0 -j ACCEPT
+#---------------------------------------------------------------
+# TCP
+-A INPUT -i eth0 -p tcp -m tcp --dport 80 -j ACCEPT
+-A INPUT -i eth0 -p tcp -m tcp --dport 22 -j ACCEPT
+#---------------------------------------------------------------
+-A OUTPUT -s 127.0.0.1 -j ACCEPT
+-A OUTPUT -s 192.168.51.108 -j ACCEPT
+#---------------------------------------------------------------
+COMMIT
+
+# systemctl restart iptables.service
+# iptables -L
+Chain INPUT (policy DROP)
+target     prot opt source               destination
+ACCEPT     tcp  --  anywhere             anywhere             tcp flags:FIN,SYN,RST,ACK/SYN
+ACCEPT     tcp  --  anywhere             anywhere             state RELATED,ESTABLISHED
+DROP       tcp  --  anywhere             anywhere
+ACCEPT     all  --  localhost            anywhere
+
+ACCEPT     all  --  container.mkr.msk    anywhere
+ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:http
+ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:ssh
+
+Chain FORWARD (policy DROP)
+target     prot opt source               destination
+
+Chain OUTPUT (policy DROP)
+target     prot opt source               destination
+ACCEPT     all  --  localhost            anywhere
+ACCEPT     all  --  container.mkr.msk    anywhere
+
+проверяем:
+Ubuntu:~$ ssh root@192.168.51.108
+root@192.168.51.108's password:
+Last login: Mon Aug 31 18:28:05 2020 from 192.168.51.120
+[root@centos8 ~]#
+
+# curl http://192.168.51.108/
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <title>CentOS 提供的 Apache HTTP 服务器测试页</title>
+
+-------------------------------------------------------------------------------------------------------------------------
+4. * Настроить проброс портов локально с порта 80 на порт 8080.
+
+Разрешим переадресацию трафика
+# sysctl -w net.ipv4.ip_forward=1
+net.ipv4.ip_forward = 1
+
+Сделаем наоборот: порт TCP 8080 перебросим на порт 80 (так чаще бывает), и не надо перенастраивать апач.
+
+В файле /etc/sysconfig/iptables добавим таблицу nat, разрешим destination nat (входящие пакеты)
+и source nat (входящие), и добавим соответствующую строку для переброса входящих пакетов на внутренний порт http:
+
+-A PREROUTING -p tcp --dport 8080 -j REDIRECT --to-port 80
+
+# service iptables restart (ещё работает по старому!)
+# cat iptables
+.........
+*nat
+:PREROUTING ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+-A PREROUTING -p tcp --dport 8080 -j REDIRECT --to-port 80
+COMMIT
+
+Проверяем
+# iptables -t nat -L
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination
+REDIRECT   tcp  --  anywhere             anywhere             tcp dpt:webcache redir ports 80
+
+$ curl http://192.168.51.108:8080/
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <title>CentOS 提供的 Apache HTTP 服务器测试页</title>
+
+Т.е. наш Апач теперь доступен и по порту 8080
