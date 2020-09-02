@@ -1,0 +1,238 @@
+Урок 8. Введение в docker
+
+-----------------------------------------------------------------------------
+1. Переустановить операционную систему, подключить репозиторий Docker.
+
+Будем использовать Ubuntu Server 18.04.5 LTS
+
+после установки обновляем:
+# sudo apt update && sudo apt upgrade
+
+дополнительные пакеты ядра для снапшотов:
+# sudo apt install linux-image-extra-virtual
+
++ ещё дополнительные пакеты
+# sudo apt install apt-transport-https ca-certificates curl software-properties-common
+
+добавим ключ репозитория:
+# curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+и добавим репозиторий docker в систему:
+# sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
+сразу обновим
+# sudo apt update && apt-cache policy docker-ce
+
+Установим непосредственно Docker:
+# sudo apt install -y docker-ce
+
+добавим текущего пользователя в группу docker:
+# sudo usermod -aG docker $(whoami)
+
+Добавим в автозагрузку:
+# sudo systemctl enable docker
+
+проверяем статус сервиса docker:
+# sudo systemctl status docker
+● docker.service - Docker Application Container Engine
+   Loaded: loaded (/lib/systemd/system/docker.service; enabled; vendor preset: enabled)
+   Active: active (running) since Tue 2020-09-01 11:51:28 UTC; 1h 52min ago
+     Docs: https://docs.docker.com
+ Main PID: 3640 (dockerd)
+    Tasks: 22
+   CGroup: /system.slice/docker.service
+           └─3640 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+
+установим утилиту управления контейнерами docker compose:
+
+# sudo curl -L "https://github.com/docker/compose/releases/download/1.25.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+# sudo chmod +x /usr/local/bin/docker-compose
+# docker-compose --version
+
+-----------
+Проверяем:
+# docker run hello-world
+Unable to find image 'hello-world:latest' locally
+latest: Pulling from library/hello-world
+0e03bdcc26d7: Pull complete
+Digest: sha256:7f0a9f93b4aa3022c3a4c147a449bf11e0941a1fd0bf4a8e6c9408b2600777c5
+Status: Downloaded newer image for hello-world:latest
+
+Hello from Docker!
+
+Работает!
+
+-----------------------------------------------------------------------------
+2. Запустить контейнер с Ubuntu.
+
+# docker search ubuntu
+NAME                                                      DESCRIPTION                                     STARS               OFFICIAL            AUTOMATED
+ubuntu                                                    Ubuntu is a Debian-based Linux operating sys…   11271               [OK]
+
+# docker pull ubuntu
+Using default tag: latest
+latest: Pulling from library/ubuntu
+54ee1f796a1e: Pull complete
+f7bfea53ad12: Pull complete
+46d371e02073: Pull complete
+b66c17bbf772: Pull complete
+Digest: sha256:31dfb10d52ce76c5ca0aa19d10b3e6424b830729e32a89a7c6eee2cda2be67a5
+Status: Downloaded newer image for ubuntu:latest
+docker.io/library/ubuntu:latest
+
+# docker images
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+ubuntu              latest              4e2eef94cd6b        12 days ago         73.9MB
+hello-world         latest              bf756fb1ae65        8 months ago        13.3kB
+
+# docker run -it ubuntu
+root@7bf0e674fd0a:/# whoami
+root
+root@7bf0e674fd0a:/# top
+
+Tasks:   2 total,   1 running,   1 sleeping,   0 stopped,   0 zombie
+%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+MiB Mem :   7959.9 total,   6560.2 free,    371.1 used,   1028.6 buff/cache
+MiB Swap:   4096.0 total,   4096.0 free,      0.0 used.   7348.1 avail Mem
+
+   PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+     1 root      20   0    4112   3480   2936 S   0.0   0.0   0:00.05 bash
+    10 root      20   0    6088   3336   2780 R   0.0   0.0   0:00.01 top
+
+# df
+Filesystem                        1K-blocks    Used Available Use% Mounted on
+overlay                            20511312 7208188  12238164  38% /
+tmpfs                                 65536       0     65536   0% /dev
+tmpfs                               4075452       0   4075452   0% /sys/fs/cgroup
+shm                                   65536       0     65536   0% /dev/shm
+/dev/mapper/ubuntu--vg-ubuntu--lv  20511312 7208188  12238164  38% /etc/hosts
+tmpfs                               4075452       0   4075452   0% /proc/acpi
+tmpfs                               4075452       0   4075452   0% /proc/scsi
+tmpfs                               4075452       0   4075452   0% /sys/firmware
+
+# apt-get update
+
+# docker ps
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+7bf0e674fd0a        ubuntu              "/bin/bash"         8 minutes ago       Up 8 minutes                            vigilant_chebyshev
+
+# docker commit -m "UbTest1" -a "VictorN" 7bf0e674fd0a repository/ubuntu-test1
+sha256:08ed26ce6d3392e09f828e8d607f3cfec2137ad6f65160896efe855b655e8664
+
+# docker images
+REPOSITORY                TAG                 IMAGE ID            CREATED             SIZE
+repository/ubuntu-test1   latest              08ed26ce6d33        39 seconds ago      202MB
+ubuntu                    latest              4e2eef94cd6b        12 days ago         73.9MB
+hello-world               latest              bf756fb1ae65        8 months ago        13.3kB
+
+# docker ps -l
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+7bf0e674fd0a        ubuntu              "/bin/bash"         8 minutes ago       Up 8 minutes                            vigilant_chebyshev
+
+# docker stop 7bf0e674fd0a
+7bf0e674fd0a
+
+# docker ps
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+
+# docker start 7bf0e674fd0a
+7bf0e674fd0a
+# docker ps
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+7bf0e674fd0a        ubuntu              "/bin/bash"         19 minutes ago      Up 3 seconds                            vigilant_chebyshev
+
+# docker attach 7bf0e674fd0a
+root@7bf0e674fd0a:/#
+
+# exit
+exit
+# docker ps
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+#
+
+-----------------------------------------------------------------------------
+3. * Используя Dockerfile, собрать связку nginx + PHP-FPM в одном контейнере.
+
+# mkdir -p /var/www/html
+# mkdir -p /opt/docker/nginxphp
+# cd /opt/docker/nginxphp
+
+Создадим докерфайл:
+
+# vi Dockerfile
+FROM ubuntu:18.04
+MAINTAINER VictorN <victor@sipcon.ru>
+RUN apt-get update && apt-get install nginx -y && apt-get install php-fpm -y
+VOLUME "/var/www/html"
+EXPOSE 80
+CMD /usr/sbin/nginx -g "daemon off;"
+
+Запустим сборку образа контейнера:
+
+# docker build -t np13 .
+Sending build context to Docker daemon  2.048kB
+Step 1/7 : FROM ubuntu:latest
+ ---> 4e2eef94cd6b
+Step 2/7 : MAINTAINER VictorN <victor@sipcon.ru>
+ ---> Running in 3e516b2df7b7
+Removing intermediate container 3e516b2df7b7
+ ---> a6b55b91cbc2
+Step 3/7 : RUN apt update
+ ---> Running in 2180d30801a3
+.............
+Removing intermediate container 3cc678508540
+ ---> 679940c75845
+Step 5/7 : VOLUME "/var/www/html"
+ ---> Running in 6979b3d74461
+Removing intermediate container 6979b3d74461
+ ---> 3e7fb3f013c7
+Step 6/7 : EXPOSE 80
+ ---> Running in bc8442303672
+Removing intermediate container bc8442303672
+ ---> e931e99dcbed
+Step 7/7 : CMD /usr/sbin/nginx -g "daemon off;"
+ ---> Running in 3da35e728124
+Removing intermediate container 3da35e728124
+ ---> a57670ccfefb
+Successfully built a57670ccfefb
+Successfully tagged np13
+
+Запускаем контейнер из собранного нами образа: 
+
+# docker run -d -p 80:80 np13
+40a5449a3eb4ff97cffa81be4ec15aaa1f60950e6ffe2039d8dd666ec3623fac
+
+# docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                NAMES
+40a5449a3eb4        np13                "/bin/sh -c '/usr/sb…"   6 seconds ago       Up 5 seconds        0.0.0.0:80->80/tcp   hopeful_jones
+
+Т.к. мы запустили nginx не в режиме демона docker attach не даёт работать с терминалом контейнера - попадает в пустой терминал nginx, 
+поэтому подключимся через новый терминал:
+
+# docker container exec -it hopeful_jones /bin/bash
+root@40a5449a3eb4:/#
+
+root@40a5449a3eb4:/# php -v
+PHP 7.2.24-0ubuntu0.18.04.6 (cli) (built: May 26 2020 13:09:11) ( NTS )
+Copyright (c) 1997-2018 The PHP Group
+Zend Engine v3.2.0, Copyright (c) 1998-2018 Zend Technologies
+    with Zend OPcache v7.2.24-0ubuntu0.18.04.6, Copyright (c) 1999-2018, by Zend Technologies
+
+# service nginx status
+ * nginx is running
+
+# curl http://192.168.51.122:80
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+
+Работает!
+
+
+
+
+
+
+
+
+
